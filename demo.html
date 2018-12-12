@@ -1,0 +1,635 @@
+<html>
+  <head>
+    <title>@ecolak mxGraph</title>
+    <style>
+      .container {
+        overflow: hidden;
+        position: absolute;
+        left: 120px;
+        top: 40px;
+        right: 0;
+        bottom: 0;
+        background: url("./src/grid.gif");
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: left;
+        margin: 10px;
+        margin-left: 120px;
+      }
+
+      .toolbar button {
+        margin-left: 3px;
+        margin-right: 3px;
+      }
+
+      .sidebar {
+        font-size: 12px;
+        text-align: center;
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+        position: absolute;
+        width: 120px;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        list-style: none;
+        padding-left: 10px;
+        padding-top: 10px;
+      }
+
+      .sidebar li {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        padding: 3px 5px;
+        margin-bottom: 6px;
+        width: 80px;
+      }
+
+      .sidebar li.task {
+        border: 1px solid #80c6ee;
+        cursor: pointer;
+      }
+
+      .taskWrapper .taskTitle {
+        color: #80c6ee;
+      }
+
+      .changeInput {
+        position: absolute;
+        top: 50px;
+        left: 150px;
+        z-index: 100;
+      }
+    </style>
+    <!-- Sets the basepath for the library if not in same directory -->
+    <script type="text/javascript">
+      mxBasePath = "../src";
+    </script>
+
+    <!-- Loads and initializes the library -->
+    <script type="text/javascript" src="../src/js/mxClient.js"></script>
+
+    <!-- Example code -->
+    <script type="text/javascript">
+      // Program starts here. Creates a sample graph in the
+      var json = localStorage.getItem('json')
+
+
+      render = (dataModel, graph) => {
+      	const jsonEncoder = new JsonCodec();
+      	let vertices = {};
+        		const parent = graph.getDefaultParent();
+      	graph.getModel().beginUpdate(); // Adds cells to the model in a single step
+      	try {
+      		dataModel && dataModel.graph.map((node)=> {
+      			if(node.value) {
+      				console.log(node.value);
+      				if(typeof node.value === "object") {
+      					const xmlNode = jsonEncoder.encode(node.value);
+      					console.log(xmlNode)
+      					vertices[node.id] = graph.insertVertex(parent, null, xmlNode, node.geometry.x, node.geometry.y, node.geometry.width, node.geometry.height, node.style);
+      				} else if(node.value === "Edge") {
+      					graph.insertEdge(parent, null, 'Edge', vertices[node.source], vertices[node.target], node.style)
+      				}
+      			}
+      		});
+      	} finally {
+      		graph.getModel().endUpdate(); // Updates the display
+      	}
+      		}
+
+      class JsonCodec extends mxObjectCodec {
+      	constructor() {
+      		super((value)=>{});
+      	}
+      	encode (value) {
+      		const xmlDoc = mxUtils.createXmlDocument();
+      		const newObject = xmlDoc.createElement("TaskObject");
+      		for(let prop in value) {
+      			newObject.setAttribute(prop, value[prop]);
+      		}
+      		return newObject;
+      	}
+      	decode(model) {
+      		return Object.keys(model.cells).map(
+      			(iCell)=>{
+      			const currentCell = model.getCell(iCell);
+      			return (currentCell.value !== undefined)? currentCell : null;
+      			}
+      		).filter((item)=> (item !== null));
+      	}
+      }
+      getJsonModel = (graph) => {
+      	const encoder = new JsonCodec();
+      	const jsonModel = encoder.decode(graph.getModel());
+      	return {
+      		"graph": jsonModel
+      	}
+      }
+
+      function stringifyWithoutCircular(json){
+      	return JSON.stringify(
+      		json,
+      		( key, value) => {
+      			if((key === 'parent' || key == 'source' || key == 'target') && value !== null) {
+      			return value.id;
+      			} else if(key === 'value' && value !== null && value.localName) {
+      			let results = {};
+      			Object.keys(value.attributes).forEach(
+      				(attrKey)=>{
+      				const attribute = value.attributes[attrKey];
+      				results[attribute.nodeName] = attribute.nodeValue;
+      				}
+      			)
+      			return results;
+      			}
+      			return value;
+      		},
+      		4
+      	);
+      }
+      function main() {
+      	// Checks if the browser is supported
+      	if (!mxClient.isBrowserSupported()) {
+      		// Displays an error message if the browser is not supported.
+      		mxUtils.error('Browser is not supported!', 200, false);
+      	} else {
+                    // Automatic layout part
+            let layout123 = document.getElementById('layout123');
+      		const changeInput = document.querySelector('.changeInput')
+      		const dom = `<label for="">label</label><input type="text" name="" id="label">
+      <label for="">value</label><input type="text" id='title'><input type='button' id='submit' value='submit'>`
+              let layoutFunc = function(v) {
+                        graph.getModel().beginUpdate();
+      			try {
+
+          			layout.execute(graph.getDefaultParent());
+      			}
+      			catch (e) {
+      				throw e;
+      			}
+      			finally {
+                            graph.getModel().endUpdate();
+                        }
+                    }
+                    layout123.addEventListener('click', layoutFunc)
+
+
+      		// Enables guides
+      		// Enable alignment lines to help locate
+                    mxGraphHandler.prototype.guidesEnabled = true;
+
+                    // Alt disables guides
+      	    mxGuide.prototype.isEnabledForEvent = function(evt)
+      	    {
+      	    	return !mxEvent.isAltDown(evt);
+      	    };
+
+      		// Specifies if waypoints should snap to the routing centers of terminals
+      		mxEdgeHandler.prototype.snapToTerminals = true;
+
+      		var graphs = [];
+
+      		// Creates the graph inside the given container
+      			var container = document.querySelector('.container');
+      			document.body.appendChild(container);
+
+                        var graph = new mxGraph(container);
+                        var layout = new mxHierarchicalLayout(graph, mxConstants.DIRECTION_NORTH);
+                        layout.parallelEdgeSpacing = 10;
+                        graph.gridSize = 30;
+                         // Disables built-in context menu
+                        mxEvent.disableContextMenu(container);
+                        graph.setPanning(true);
+      			/
+                        graph.setTooltips(true);
+
+                        graph.setConnectable(true);
+
+                        graph.setCellsEditable(true);
+
+                        graph.setEnabled(true);
+                        // Enables HTML labels
+      		    graph.setHtmlLabels(true);
+
+      			// Uncomment the following if you want the container
+      			// to fit the size of the graph
+      			//graph.setResizeContainer(true);
+
+      			// Enables rubberband selection
+
+      			new mxKeyHandler(graph);
+      			new mxRubberband(graph);
+
+
+      			graph.centerZoom = true;
+
+      			var toolbar = document.querySelector('.toolbar')
+      			toolbar.appendChild(mxUtils.button('zoom (+)', function(evt){
+      				graph.zoomIn();
+      			}));
+
+      			toolbar.appendChild(mxUtils.button('zoom (-)', function(evt){
+      				graph.zoomOut();
+      			}));
+
+      			toolbar.appendChild(mxUtils.button('Restore', function(evt){
+      				graph.zoomActual();
+      				graph.zoomFactor = 1.2;
+      			}));
+
+
+      			var undoManager = new mxUndoManager();
+      			var listener = function(sender, evt) {
+      				undoManager.undoableEditHappened(evt.getProperty('edit'));
+      			};
+      			graph.getModel().addListener(mxEvent.UNDO, listener);
+      			graph.getView().addListener(mxEvent.UNDO, listener);
+
+      			toolbar.appendChild(mxUtils.button('Cancel', function() {
+      				undoManager.undo();
+      			}));
+
+      			toolbar.appendChild(mxUtils.button('Anti-cancel', function() {
+      				undoManager.redo();
+      			}));
+
+      			toolbar.appendChild(mxUtils.button('view XML', function() {
+      				var encoder = new mxCodec();
+      				var node = encoder.encode(graph.getModel());
+      				mxUtils.popup(mxUtils.getXml(node), true);
+      			}));
+      			toolbar.appendChild(mxUtils.button('view JSON', function() {
+      				 const jsonNodes = getJsonModel(graph);
+      				 let jsonStr = stringifyWithoutCircular(jsonNodes)
+      				 localStorage.setItem('json', jsonStr)
+      				 json = jsonStr;
+      				 console.log(jsonStr)
+      			}));
+      			toolbar.appendChild(mxUtils.button('render JSON', function() {
+      				render(JSON.parse(json), graph);
+      			}));
+      			// var keyHandler = new mxKeyHandler(graph);
+      			// keyHandler.bindKey(46, function(evt) {
+      			// 	console.log('aaaa')
+      			// 	if (graph.isEnabled()) {
+      			// 		graph.removeCells();
+      			// 	}
+      			// });
+      			graphs.push(graph);
+
+      			graph.getSelectionModel().addListener(mxEvent.CHANGE, function(sender, evt){
+      				// console.log(sender)
+      			})
+
+
+      			function selectionChanged(graph) {
+      				var cell = graph.getSelectionCell();
+      				var attrs = cell.value.attributes;
+      				changeInput.innerHTML = dom
+      				const inputLabel = document.getElementById('label');
+      				const inputValue = document.getElementById('title');
+      				// console.log(cell, attrs)
+      				var currentDom;
+      				for (var i = 0; i < attrs.length; i++) {
+      					if (attrs[i].nodeName === 'label') {
+      						inputLabel.value =  attrs[i].nodeValue
+      						currentDom = inputLabel
+      					}
+      					if (attrs[i].nodeName === 'text') {
+      						inputValue.value = attrs[i].nodeValue
+      						currentDom = inputValue
+      					}
+      					bindTextField(graph, cell, attrs[i], currentDom)
+      					// console.log(attrs[i].nodeName + ':' + attrs[i].nodeValue);
+      			    }
+      			}
+
+      			function bindTextField(graph, cell, attribute, currentDom) {
+      				var applyHandler = function() {
+      					var newValue = currentDom.value || '';
+      					var oldValue = cell.getAttribute(attribute.nodeName, '');
+      					if (newValue != oldValue) {
+      						graph.getModel().beginUpdate();
+      						try {
+      							var edit = new mxCellAttributeChange(
+      								cell, attribute.nodeName,
+      								newValue);
+      							// console.log(edit)
+      							graph.getModel().execute(edit);
+      							// graph.updateCellSize(cell);
+      						} finally{
+      							graph.getModel().endUpdate();
+      						}
+      					}
+      					changeInput.innerHTML = ''
+      				};
+      				const button = document.getElementById('submit')
+      				mxEvent.addListener(button, 'click', applyHandler);
+      			}
+                    // Returns the graph under the mouse
+
+                                    // Snaps to fixed points
+      		mxConstraintHandler.prototype.intersects = function(icon, point, source, existingEdge) {
+      			return (!source || existingEdge) || mxUtils.intersects(icon.bounds, point);
+      		};
+
+      		// Special case: Snaps source of new connections to fixed points
+      		// Without a connect preview in connectionHandler.createEdgeState mouseMove
+      		// and getSourcePerimeterPoint should be overriden by setting sourceConstraint
+      		// sourceConstraint to null in mouseMove and updating it and returning the
+      		// nearest point (cp) in getSourcePerimeterPoint (see below)
+      		var mxConnectionHandlerUpdateEdgeState = mxConnectionHandler.prototype.updateEdgeState;
+      		mxConnectionHandler.prototype.updateEdgeState = function(pt, constraint) {
+      			if (pt != null && this.previous != null)
+      			{
+      		        var constraints = this.graph.getAllConnectionConstraints(this.previous);
+      		        var nearestConstraint = null;
+      		        var dist = null;
+
+      		        for (var i = 0; i < constraints.length; i++)
+      		        {
+      		            var cp = this.graph.getConnectionPoint(this.previous, constraints[i]);
+
+      		            if (cp != null)
+      		            {
+      		                var tmp = (cp.x - pt.x) * (cp.x - pt.x) + (cp.y - pt.y) * (cp.y - pt.y);
+
+      		                if (dist == null || tmp < dist)
+      		                {
+      		                	nearestConstraint = constraints[i];
+      		                    dist = tmp;
+      		                }
+      		            }
+      		        }
+
+      		        if (nearestConstraint != null)
+      		        {
+      		        	this.sourceConstraint = nearestConstraint;
+      		        }
+
+      		        // In case the edge style must be changed during the preview:
+      		        // this.edgeState.style['edgeStyle'] = 'orthogonalEdgeStyle';
+      		        // And to use the new edge style in the new edge inserted into the graph,
+      		        // update the cell style as follows:
+      		        //this.edgeState.cell.style = mxUtils.setStyle(this.edgeState.cell.style, 'edgeStyle', this.edgeState.style['edgeStyle']);
+      			}
+
+      			mxConnectionHandlerUpdateEdgeState.apply(this, arguments);
+                    };
+
+      		if (graph.connectionHandler.connectImage == null) {
+      			graph.connectionHandler.isConnectableCell = function(cell) {
+      			   return false;
+      			};
+      			mxEdgeHandler.prototype.isConnectableCell = function(cell) {
+      				return graph.connectionHandler.isConnectableCell(cell);
+      			};
+      		}
+
+      		graph.getAllConnectionConstraints = function(terminal) {
+      			if (terminal != null && this.model.isVertex(terminal.cell)) {
+      				return [new mxConnectionConstraint(new mxPoint(0.5, 0), true),
+      			    	new mxConnectionConstraint(new mxPoint(0, 0.5), true),
+      					new mxConnectionConstraint(new mxPoint(1, 0.5), true),
+      					new mxConnectionConstraint(new mxPoint(0.5, 1), true)];
+      			}
+      			return null;
+      		};
+
+      		// Connect preview
+      		graph.connectionHandler.createEdgeState = function(me) {
+      			var edge = graph.createEdge(null, null, 'Edge', null, null, 'edgeStyle=orthogonalEdgeStyle');
+
+      			return new mxCellState(this.graph.view, edge, this.graph.getCellStyle(edge));
+      		};
+
+
+      		var graphF = function(evt) {
+      			var x = mxEvent.getClientX(evt);
+      			var y = mxEvent.getClientY(evt);
+      			var elt = document.elementFromPoint(x, y);
+
+      			for (var i = 0; i < graphs.length; i++)
+      			{
+      				if (mxUtils.isAncestorNode(graphs[i].container, elt))
+      				{
+      					return graphs[i];
+      				}
+      			}
+
+      			return null;
+      		};
+
+                    // Inserts a cell at the given location
+                    // Adds optional caching for the HTML label
+                    // var cached = true;
+
+                    // if (cached) {
+                    //     // Ignores cached label in codec
+                    //     mxCodecRegistry.getCodec(mxCell).exclude.push('div');
+
+                    //     // Invalidates cached labels
+                    //     graph.model.setValue = function(cell, value)
+                    //     {
+                    //         cell.div = null;
+                    //         mxGraphModel.prototype.setValue.apply(this, arguments);
+                    //     };
+                    // }
+
+                        // Installs a custom tooltip for cells
+      		graph.getTooltipForCell = function(cell) {
+      			return cell.getAttribute('desc')
+      		}
+                    graph.popupMenuHandler.factoryMethod = function(menu, cell, evt) {
+      			return createPopupMenu(graph, menu, cell, evt);
+      		};
+      		// graph.isCellEditable = function(cell) {
+      		// 	return !this.getModel().isEdge(cell);
+      		// };
+                    graph.convertValueToString = function(cell) {
+      			if (mxUtils.isNode(cell.value) && cell.value.nodeName.toLowerCase() == 'taskobject') {
+      				console.log(cell.getAttribute('label'))
+      				// Returns a DOM for the label
+                            var div = document.createElement('div');
+                            div.setAttribute('class', 'taskWrapper');
+      				div.innerHTML = `<span class='taskTitle'>${cell.getAttribute('label')}</span>`
+      				mxUtils.br(div);
+
+                            var p = document.createElement('p');
+                            p.setAttribute('class', 'taskName');
+                            p.innerHTML = cell.getAttribute('text');
+
+      				div.appendChild(p);
+
+      				return div;
+      			}
+
+      			return '';
+      		};
+      		var funct = function(graph, evt, target, x, y, value) {
+                        // console.log(value)
+      			// var cell = new mxCell(value, new mxGeometry(0, 0, 120, 40), 'strokeColor=#80c6ee;strokeWidth=2;fillColor=white');
+      			// cell.vertex = true;
+                        // var cells = graph.importCells([cell], x, y, target);
+                        var doc = mxUtils.createXmlDocument();
+                        var obj = doc.createElement('TaskObject');
+                        obj.setAttribute('label', value);
+                        obj.setAttribute('text', '');
+                        obj.setAttribute('desc', '详细的描述出来了')
+
+      			//获取顶层，可以认为是父节点
+                        var parent = graph.getDefaultParent();
+      			//parent画板父层，value值，x，y为坐标起点，width宽，height高
+      			//style样式  stylename;image=imageUrl
+      			console.log(obj)
+      			let cell = graph.insertVertex(parent, target, obj, x, y, 150, 60, 'strokeColor=#80c6ee;strokeWidth=2;fillColor=white');
+      			graph.setSelectionCell(cell)
+      			selectionChanged(graph)
+      			// if (cells != null && cells.length > 0)
+      			// {
+      			// 	graph.scrollCellToVisible(cells[0]);
+      			// 	graph.setSelectionCells(cells);
+      			// }
+      		};
+
+      		// Creates a DOM node that acts as the drag source
+      		// var div = document.createElement('div')
+      		// div.style.width = '80px';
+      		// div.style.height = '30px';
+      		// div.style.backgroundColor='pink';
+      		// document.body.appendChild(div);
+
+      		// Disables built-in DnD in IE (this is needed for cross-frame DnD, see below)
+      		if (mxClient.IS_IE)
+      		{
+      			mxEvent.addListener(img, 'dragstart', function(evt)
+      			{
+      				evt.returnValue = false;
+      			});
+      		}
+
+      		// Creates the element that is being for the actual preview.
+      		var dragElt = document.createElement('div');
+      		dragElt.style.border = 'dashed black 1px';
+      		dragElt.style.width = '120px';
+      		dragElt.style.height = '40px';
+                    tasksDrag = document.querySelectorAll('.sidebar .task')
+                    Array.prototype.slice.call(tasksDrag).forEach(ele => {
+                        const value = ele.getAttribute('data-title')
+                        let ds = mxUtils.makeDraggable(ele, graphF, (graph, evt, target, x, y) => funct(graph, evt, target, x, y, value), dragElt, null, null, graph.autoscroll, true);
+                        ds.isGuidesEnabled = function() {
+                            return graph.graphHandler.guidesEnabled;
+      			};
+                        ds.createDragElement = mxDragSource.prototype.createDragElement;
+                    })
+
+                    // Function to create the entries in the popupmenu
+                    function createPopupMenu(graph, menu, cell, evt) {
+      			if (cell) {
+      				if (cell.edge === true) {
+      					menu.addItem('删除子节点', null, function() {
+      						graph.removeCells([cell]);
+      						mxEvent.consume(evt);
+      					});
+      				} else {
+      					menu.addItem('编辑子节点', null, function() {
+      						// mxUtils.alert('编辑子节点: ');
+      						selectionChanged(graph)
+      					})
+      					menu.addItem('删除子节点', null, function() {
+      						graph.removeCells([cell]);
+      						mxEvent.consume(evt);
+      					});
+      				}
+      			}
+      		};
+
+      		// load json
+      		var dataModel = json;
+      				render(JSON.parse(dataModel), graph);
+      		// Drag source is configured to use dragElt for preview and as drag icon
+      		// if scalePreview (last) argument is true. Dx and dy are null to force
+      		// the use of the defaults. Note that dx and dy are only used for the
+      		// drag icon but not for the preview.
+
+      		// Redirects feature to global switch. Note that this feature should only be used
+      		// if the the x and y arguments are used in funct to insert the cell.
+
+      		// Restores original drag icon while outside of graph
+      	}
+      };
+
+      // NOTE: To enable cross-document DnD (eg. between frames),
+      // the following methods need to be overridden:
+      /*mxDragSourceMouseUp = mxDragSource.prototype.mouseUp;
+      mxDragSource.prototype.mouseUp = function(evt)
+      {
+      	var doc = this.element.ownerDocument;
+
+      	if (doc != document)
+      	{
+      		var mu = (mxClient.IS_TOUCH) ? 'touchend' : 'mouseup';
+
+      		if (this.mouseUpHandler != null)
+      		{
+      			mxEvent.removeListener(doc, mu, this.mouseUpHandler);
+      		}
+      	}
+
+      	mxDragSourceMouseUp.apply(this, arguments);
+      };*/
+
+      /*mxDragSourceMouseDown = mxDragSource.prototype.mouseDown;
+      mxDragSource.prototype.mouseDown = function(evt)
+      {
+      	if (this.enabled && !mxEvent.isConsumed(evt))
+      	{
+      		mxDragSourceMouseDown.apply(this, arguments);
+      		var doc = this.element.ownerDocument;
+
+      		if (doc != document)
+      		{
+      			var mu = (mxClient.IS_TOUCH) ? 'touchend' : 'mouseup';
+      			mxEvent.addListener(doc, mu, this.mouseUpHandler);
+      		}
+      	}
+      };*/
+    </script>
+  </head>
+
+  <!-- Page passes the container for the graph to the program -->
+
+  <body onload="main();">
+    <ul class="sidebar">
+      <li class="title" data-title="Task node" data-value="Task node">
+        Task node
+      </li>
+      <li class="task" data-title="Kafka->HDFS" data-value="Channel task">
+        Channel task
+      </li>
+      <li class="task" data-title="A/B test task" data-value="A/B test task">
+        A/Btest task
+      </li>
+      <li class="task" data-title="Hive->Email" data-value="Report task">
+        Report Task
+      </li>
+      <li class="task" data-title="Hive->Hive" data-value="HSQL task">
+        HSQL task
+      </li>
+      <li class="task" data-title="shell task" data-value="shell task">
+        shell task
+      </li>
+      <li id="layout123">layout</li>
+    </ul>
+    <div class="toolbar"></div>
+    <div class="container"></div>
+    <div class="changeInput" style="z-index: 10;"></div>
+  </body>
+</html>
