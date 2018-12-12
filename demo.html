@@ -482,12 +482,12 @@
                         var obj = doc.createElement('TaskObject');
                         obj.setAttribute('label', value);
                         obj.setAttribute('text', '');
-                        obj.setAttribute('desc', '详细的描述出来了')
+                        obj.setAttribute('desc', 'Description')
 
-      			//获取顶层，可以认为是父节点
+      			//Get the top level, which can be considered as the parent node
                         var parent = graph.getDefaultParent();
-      			//parent画板父层，value值，x，y为坐标起点，width宽，height高
-      			//style样式  stylename;image=imageUrl
+      			//parent，value，x，y，width，height
+            //style,  stylename;image=imageUrl
       			console.log(obj)
       			let cell = graph.insertVertex(parent, target, obj, x, y, 150, 60, 'strokeColor=#80c6ee;strokeWidth=2;fillColor=white');
       			graph.setSelectionCell(cell)
@@ -534,16 +534,16 @@
                     function createPopupMenu(graph, menu, cell, evt) {
       			if (cell) {
       				if (cell.edge === true) {
-      					menu.addItem('删除子节点', null, function() {
+      					menu.addItem('Delete', null, function() {
       						graph.removeCells([cell]);
       						mxEvent.consume(evt);
       					});
       				} else {
-      					menu.addItem('编辑子节点', null, function() {
-      						// mxUtils.alert('编辑子节点: ');
+      					menu.addItem('Edit', null, function() {
+      						// mxUtils.alert('Edit: ');
       						selectionChanged(graph)
       					})
-      					menu.addItem('删除子节点', null, function() {
+      					menu.addItem('Delete', null, function() {
       						graph.removeCells([cell]);
       						mxEvent.consume(evt);
       					});
